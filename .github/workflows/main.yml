@@ -9,36 +9,43 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 python3-pip build-essential git openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
+          sudo apt-get install -y python3 python3-pip build-essential git openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev unzip wget
           pip3 install --upgrade Cython==0.29.33 virtualenv
           pip3 install buildozer numpy sounddevice
 
       - name: Prepare SDK and accept licenses
         run: |
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+          export ANDROID_CMDLINE_TOOLS=$ANDROID_HOME/cmdline-tools/latest
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
 
-          mkdir -p $HOME/.android
-          touch $HOME/.android/repositories.cfg
+          mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
           mkdir -p $ANDROID_HOME/licenses
 
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
 
-          buildozer android debug || true
+          if [ ! -d "$ANDROID_CMDLINE_TOOLS" ]; then
+            cd /tmp
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+            unzip -q cmdline-tools.zip -x "source.properties" "NOTICE.txt"
+            mkdir -p $ANDROID_HOME/cmdline-tools
+            mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+            rm -f cmdline-tools.zip
+          fi
 
-          if [ ! -f "$ANDROID_HOME/tools/bin/sdkmanager" ]; then
+          if [ ! -f "$ANDROID_CMDLINE_TOOLS/bin/sdkmanager" ]; then
             echo "sdkmanager не найден!"
             exit 1
           fi
 
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34" --verbose
+          yes | $ANDROID_CMDLINE_TOOLS/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34" --verbose
 
           if [ -f "$ANDROID_HOME/build-tools/34.0.0/aidl" ]; then
-            echo "aidl найден — всё отлично!"
+            echo "aidl найден — сборка продолжится"
           else
-            echo "aidl не найден Сборка упадёт."
+            echo "Ошибка: aidl не найден"
             exit 1
           fi
         env:
