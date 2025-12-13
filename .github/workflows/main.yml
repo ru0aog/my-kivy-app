@@ -60,15 +60,14 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
-      - name: Build APK (minimal)
+      - name: Build APK
         run: |
-          echo "🛠️ Сборка APK..."
           buildozer -v android debug
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
           P4A_libffi_DIR: /usr
-          # Уменьшаем шум в логах, чтобы не переполнять буфер
           PYTHONUNBUFFERED: 1
+
 
       - name: Upload APK
         if: success()
