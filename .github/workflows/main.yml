@@ -12,7 +12,6 @@ jobs:
       - name: Install Buildozer
         run: |
           pip3 install  --upgrade buildozer
-          sudo apt -y install python3-distutils
           sudo apt update
           sudo apt -y install python3-pip
           sudo apt-get install -y git
