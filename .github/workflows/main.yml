@@ -11,7 +11,8 @@ jobs:
           python-version: '3.11'
       - name: Install numpy
         run: |
-          pip3 install numpy, sounddevice
+          pip3 install numpy
+          pip3 install sounddevice
       - name: Install Buildozer
         run: |
           pip3 install  --upgrade buildozer
