@@ -37,15 +37,20 @@ jobs:
             rm -rf cmdline-tools-temp cmdline-tools.zip
           fi
 
-          if [ ! -f "$ANDROID_CMDLINE_TOOLS/bin/sdkmanager" ]; then
+          # 🔗 Создаём символическую ссылку — обманываем Buildozer
+          if [ ! -L "$ANDROID_HOME/tools" ]; then
+            ln -sf $ANDROID_HOME/cmdline-tools/latest $ANDROID_HOME/tools
+          fi
+
+          if [ ! -f "$ANDROID_HOME/tools/bin/sdkmanager" ]; then
             echo "❌ sdkmanager не найден!"
             exit 1
           fi
 
-          yes | $ANDROID_CMDLINE_TOOLS/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34" --verbose
+          yes | $ANDROID_HOME/tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34" --verbose
 
           if [ -f "$ANDROID_HOME/build-tools/34.0.0/aidl" ]; then
-            echo "✅ aidl найден — сборка продолжится"
+            echo "✅ aidl найден"
           else
             echo "❌ aidl не найден"
             exit 1
