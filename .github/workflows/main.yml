@@ -9,6 +9,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+      - name: Install numpy
+        run: |
+          pip3 install numpy, sounddevice
       - name: Install Buildozer
         run: |
           pip3 install  --upgrade buildozer
@@ -18,7 +21,6 @@ jobs:
           sudo apt install -y git zip unzip 
           sudo apt install -y openjdk-17-jdk python3-pip 
           sudo apt install -y autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
-          pip3 install numpy, sounddevice
           pip3 install --upgrade Cython==0.29.33 virtualenv
       - name: Install SDK
         uses: android-actions/setup-android@v3
