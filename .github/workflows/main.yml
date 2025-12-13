@@ -32,6 +32,10 @@ jobs:
       - name: Build APK
         run: 
           buildozer -v android debug
+        with:
+          cmdline-tools-version: 'latest'
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
