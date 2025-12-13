@@ -5,18 +5,19 @@ package.domain = org.example
 
 source.dir = .
 version = 0.1
-requirements = python3,kivy==2.3.1,numpy,sounddevice,pyjnius
+requirements = python3,kivy,numpy,sounddevice,pyjnius
 
 fullscreen = 0
 orientation = portrait
 android.api = 34
 android.minapi = 21
 android.ndk_api = 21
-android.archs = arm64-v8a
-android.bootstrap = sdl2
+
+p4a.bootstrap = sdl2
 
 [buildozer]
 log_level = 2
 warn_on_root = 1
 platform = android
+
 
