@@ -37,8 +37,8 @@ android.arch = arm64-v8a
 # API уровни
 android.api = 34
 android.minapi = 21
-android.ndk = 23b  # NDK r23b — самая стабильная версия для p4a
-android.sdk = 34   # Совпадает с android.api
+android.ndk = 23b
+android.sdk = 34
 
 # Режим отладки (для релиза: buildozer android release)
 # debug = 1
@@ -64,3 +64,4 @@ buildozer.build_target = android
 
 # Каталог сборки (можно очищать между запусками)
 # build_dir = .buildozer
+
