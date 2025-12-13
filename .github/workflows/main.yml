@@ -17,7 +17,7 @@ jobs:
         run: |
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
           export ANDROID_CMDLINE_TOOLS=$ANDROID_HOME/cmdline-tools/latest
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
 
           mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
@@ -29,28 +29,30 @@ jobs:
           if [ ! -d "$ANDROID_CMDLINE_TOOLS" ]; then
             cd /tmp
             wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-            unzip -q cmdline-tools.zip -x "source.properties" "NOTICE.txt"
+            mkdir -p cmdline-tools-temp
+            unzip -q cmdline-tools.zip -d cmdline-tools-temp
+            rm -f cmdline-tools-temp/source.properties cmdline-tools-temp/NOTICE.txt
             mkdir -p $ANDROID_HOME/cmdline-tools
-            mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-            rm -f cmdline-tools.zip
+            mv cmdline-tools-temp/* $ANDROID_HOME/cmdline-tools/latest
+            rm -rf cmdline-tools-temp cmdline-tools.zip
           fi
 
           if [ ! -f "$ANDROID_CMDLINE_TOOLS/bin/sdkmanager" ]; then
-            echo "sdkmanager не найден!"
+            echo "❌ sdkmanager не найден!"
             exit 1
           fi
 
           yes | $ANDROID_CMDLINE_TOOLS/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34" --verbose
 
           if [ -f "$ANDROID_HOME/build-tools/34.0.0/aidl" ]; then
-            echo "aidl найден — сборка продолжится"
+            echo "✅ aidl найден — сборка продолжится"
           else
-            echo "Ошибка: aidl не найден"
+            echo "❌ aidl не найден"
             exit 1
           fi
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
       - name: Build APK
         run: |
