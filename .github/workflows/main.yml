@@ -9,9 +9,18 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 python3-pip build-essential git openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev unzip wget
+          sudo apt-get install -y \
+              python3 python3-pip build-essential git openjdk-17-jdk \
+              autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 \
+              cmake libffi-dev libssl-dev unzip wget \
+              automake autotools-dev m4 libltdl-dev
+
+          sudo cp /usr/share/aclocal/libtool.m4 /usr/share/aclocal/ltoptions.m4 /usr/share/aclocal/ltsugar.m4 /usr/share/aclocal/ltversion.m4 /usr/share/aclocal/lt~obsolete.m4 /usr/local/share/aclocal/ 2>/dev/null || true
+          sudo libtoolize --force --install
+
+          pip3 install --upgrade pip
           pip3 install --upgrade Cython==0.29.33 virtualenv
-          pip3 install buildozer numpy sounddevice
+          pip3 install buildozer numpy sounddevice pyjnius
 
       - name: Prepare SDK and accept licenses
         run: |
@@ -37,7 +46,6 @@ jobs:
             rm -rf cmdline-tools-temp cmdline-tools.zip
           fi
 
-          # 🔗 Создаём символическую ссылку — обманываем Buildozer
           if [ ! -L "$ANDROID_HOME/tools" ]; then
             ln -sf $ANDROID_HOME/cmdline-tools/latest $ANDROID_HOME/tools
           fi
@@ -64,6 +72,7 @@ jobs:
           buildozer -v android debug
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
+          P4A_libffi_DIR: /usr  # 🔥 Обход ошибки libffi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
