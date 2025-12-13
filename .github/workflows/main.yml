@@ -29,7 +29,6 @@ jobs:
           cmdline-tools-version: 'latest'
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
-            yes | ~/Android/Sdk/tools/bin/sdkmanager --licenses
       - name: Build APK
         run: 
           buildozer -v android debug
