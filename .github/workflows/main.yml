@@ -8,15 +8,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.11'
       - name: Install Buildozer
         run: |
           pip3 install  --upgrade buildozer
+          sudo apt -y install python3-distutils
           sudo apt update
+          sudo apt -y install python3-pip
           sudo apt-get install -y git
           sudo apt install -y git zip unzip 
           sudo apt install -y openjdk-17-jdk python3-pip 
           sudo apt install -y autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
+          pip3 install --numpy, sounddevice
           pip3 install --upgrade Cython==0.29.33 virtualenv
       - name: Install SDK
         uses: android-actions/setup-android@v3
@@ -24,12 +27,6 @@ jobs:
           cmdline-tools-version: 'latest'
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
-          packages: |
-            platform-tools
-            build-tools;33.0.0
-            platforms;android-33
-            cmake;3.22.1
-            ndk;25.1.8937393
             yes | ~/Android/Sdk/tools/bin/sdkmanager --licenses
       - name: Build APK
         run: 
