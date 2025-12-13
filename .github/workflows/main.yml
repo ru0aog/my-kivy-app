@@ -25,28 +25,27 @@ jobs:
         run: |
           buildozer android debug || true
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+          mkdir -p $HOME/.android
+          touch $HOME/.android/repositories.cfg
+          mkdir -p $ANDROID_HOME/licenses
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
+
+          
           mkdir -p $ANDROID_HOME/licenses
           mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
-          $ANDROID_HOME/tools/bin/sdkmanager "build-tools;34.0.0" "platforms;android-34"
-
-      - name: Trigger SDK download
-        run: |
-          buildozer android debug
+          $ANDROID_HOME/tools/bin/sdkmanager --install "build-tools;34.0.0" "platforms;android-34" --verbose
         env:
-          PYTHONPATH: $PYTHONPATH
-
-      - name: Accept Android SDK licenses
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
-        env:
-          ANDROID_HOME: ~/.buildozer/android/platform/android-sdk
-
+          ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
       - name: Build APK
         run: |
-          buildozer android release
+          buildozer -v android debug
         env:
-          ANDROID_HOME: ~/.buildozer/android/platform/android-sdk
+          ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-apk
+          path: bin/*.apk
