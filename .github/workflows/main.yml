@@ -6,24 +6,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Clean up disk space early
         run: |
+          echo "🧹 Очистка диска..."
+          sudo rm -rf /home/runner/actions-runner/_work/_temp/*
+          sudo rm -rf ~/.cache/pip
+          sudo rm -rf ~/.gradle
+          sudo rm -rf ~/.m2
+          df -h  # Проверка свободного места
+
+      - name: Install minimal dependencies
+        run: |
+          echo "📦 Установка минимальных зависимостей..."
           sudo apt-get update
           sudo apt-get install -y \
               python3 python3-pip build-essential git openjdk-17-jdk \
-              autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 \
-              cmake libffi-dev libssl-dev unzip wget \
-              automake autotools-dev m4 libltdl-dev
-
-          sudo cp /usr/share/aclocal/libtool.m4 /usr/share/aclocal/ltoptions.m4 /usr/share/aclocal/ltsugar.m4 /usr/share/aclocal/ltversion.m4 /usr/share/aclocal/lt~obsolete.m4 /usr/local/share/aclocal/ 2>/dev/null || true
-          sudo libtoolize --force --install
+              libncurses5-dev libncursesw5-dev libtinfo5 \
+              autoconf libtool pkg-config zlib1g-dev libffi-dev libssl-dev \
+              cmake unzip wget
 
           pip3 install --upgrade pip
-          pip3 install --upgrade Cython==0.29.33 virtualenv
-          pip3 install buildozer numpy sounddevice pyjnius
+          pip3 install Cython==0.29.33 buildozer
 
-      - name: Prepare SDK and accept licenses
+      - name: Prepare Android SDK
         run: |
+          echo "📱 Настройка Android SDK..."
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
           export ANDROID_CMDLINE_TOOLS=$ANDROID_HOME/cmdline-tools/latest
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
@@ -31,51 +38,40 @@ jobs:
 
           mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
           mkdir -p $ANDROID_HOME/licenses
-
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
 
           if [ ! -d "$ANDROID_CMDLINE_TOOLS" ]; then
             cd /tmp
             wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-            mkdir -p cmdline-tools-temp
             unzip -q cmdline-tools.zip -d cmdline-tools-temp
-            rm -f cmdline-tools-temp/source.properties cmdline-tools-temp/NOTICE.txt
-            mkdir -p $ANDROID_HOME/cmdline-tools
-            mv cmdline-tools-temp/* $ANDROID_HOME/cmdline-tools/latest
+            mkdir -p $ANDROID_HOME/cmdline-tools/latest
+            mv cmdline-tools-temp/cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ 2>/dev/null || true
             rm -rf cmdline-tools-temp cmdline-tools.zip
           fi
 
-          if [ ! -L "$ANDROID_HOME/tools" ]; then
-            ln -sf $ANDROID_HOME/cmdline-tools/latest $ANDROID_HOME/tools
-          fi
+          # Создаём симлинк tools → latest (для совместимости)
+          [ -L "$ANDROID_HOME/tools" ] || ln -sf $ANDROID_HOME/cmdline-tools/latest $ANDROID_HOME/tools
 
-          if [ ! -f "$ANDROID_HOME/tools/bin/sdkmanager" ]; then
-            echo "sdkmanager не найден!"
-            exit 1
-          fi
-
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34" --verbose
-
-          if [ -f "$ANDROID_HOME/build-tools/34.0.0/aidl" ]; then
-            echo "✅ aidl найден"
-          else
-            echo "❌ aidl не найден"
-            exit 1
-          fi
+          # Устанавливаем только нужное
+          yes | $ANDROID_HOME/tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34"
         env:
-          ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
           JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
-      - name: Build APK
+      - name: Build APK (minimal)
         run: |
+          echo "🛠️ Сборка APK..."
           buildozer -v android debug
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
-          P4A_libffi_DIR: /usr  # 🔥 Обход ошибки libffi
+          P4A_libffi_DIR: /usr
+          # Уменьшаем шум в логах, чтобы не переполнять буфер
+          PYTHONUNBUFFERED: 1
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: app-apk
           path: bin/*.apk
+          retention-days: 7
