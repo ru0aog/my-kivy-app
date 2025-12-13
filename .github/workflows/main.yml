@@ -22,18 +22,7 @@ jobs:
           pip3 install buildozer
 
       - name: Prepare SDK and accept licenses
-        run: |
-          buildozer android debug || true
-          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          mkdir -p $HOME/.android
-          touch $HOME/.android/repositories.cfg
-          mkdir -p $ANDROID_HOME/licenses
-          mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
-          $ANDROID_HOME/tools/bin/sdkmanager --install "build-tools;34.0.0" "platforms;android-34" --verbose
-        env:
-          ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
+        uses: actions/setup-dotnet@v5.0.1
       - name: Build APK
         run: |
           buildozer -v android debug
