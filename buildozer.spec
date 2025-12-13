@@ -5,15 +5,15 @@ package.domain = org.example
 
 source.dir = .
 version = 0.1
-requirements = python3,kivy==2.3.1
+requirements = python3,kivy==2.3.1,numpy,sounddevice,pyjnius
 
 osx.python_version = 3
 osx.kivy_version = 2.3.1
 
 fullscreen = 0
 orientation = portrait
-android.permissions = INTERNET
-android.api = 34
+android.permissions = INTERNET, RECORD_AUDIO
+android.api = 31
 android.minapi = 21
 android.ndk = 25b
 android.sdk = 34
@@ -23,4 +23,5 @@ android.bootstrap = sdl2
 [buildozer]
 log_level = 2
 warn_on_root = 1
+platform = android
 
