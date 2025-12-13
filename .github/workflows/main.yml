@@ -51,7 +51,7 @@ jobs:
           fi
 
           if [ ! -f "$ANDROID_HOME/tools/bin/sdkmanager" ]; then
-            echo "❌ sdkmanager не найден!"
+            echo "sdkmanager не найден!"
             exit 1
           fi
 
