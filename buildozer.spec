@@ -5,6 +5,7 @@ package.domain = org.example
 version = 0.1
 source.dir = .
 source.include_exts = py,kv,png,jpg
+pre_build_cmd = /bin/bash -c "cd .buildozer/android/platform/build-{arch}/build/other_builds/libffi/{arch}__ndk_target_21/libffi && autoreconf -fiv"
 
 orientation = portrait
 fullscreen = 0
@@ -32,3 +33,4 @@ p4a.args = --ignore-setup-py
 [buildozer]
 log_level = 2
 platform = android
+
