@@ -21,24 +21,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-              autoconf \
-              automake \
-              libtool \
-              pkg-config \
-              build-essential\
-              python3 python3-pip build-essential git openjdk-17-jdk \
+              build-essential \
+              python3 python3-pip git \
+              openjdk-17-jdk \
               libncurses5-dev libncursesw5-dev \
-              autoconf libtool pkg-config zlib1g-dev libffi-dev libssl-dev \
+              autoconf automake libtool \
+              pkg-config \
+              zlib1g-dev libffi-dev libssl-dev \
               cmake unzip wget
           
-          sudo apt-get install -y libtool automake autoconf
-          sudo apt-get install -y libffi-dev
-          sudo apt-get install -y libffi-dev
-
-
-
           pip3 install --upgrade pip
           pip3 install Cython==0.29.33 buildozer
+
+
 
 
 
@@ -77,21 +72,24 @@ jobs:
           echo "🧹 Освобождаем место..."
           sudo rm -rf /home/runner/actions-runner/_work/_temp/*
           df -h
+          
+      - name: Fix libtool aclocal path for LT_SYS_SYMBOL_USCORE
+        run: |
+          echo "🔧 Исправляем aclocal и libtool для LT_SYS_SYMBOL_USCORE..."
+          sudo mkdir -p /usr/share/aclocal
+          sudo cp /usr/share/libtool/m4/*.m4 /usr/share/aclocal/ 2>/dev/null || true
+          sudo aclocal --system-acdir=/usr/share/aclocal || true
+          echo "✅ aclocal обновлён"
 
 
       - name: Fix libffi header path
         run: |
           echo "🔧 Создаём симлинк для ffi.h..."
-          # Убедимся, что пакет установлен
-          sudo apt-get install -y libffi-dev --reinstall
-
-          # Создаём симлинк в стандартный include
           sudo mkdir -p /usr/include/ffi
           sudo ln -sf /usr/include/x86_64-linux-gnu/ffi.h /usr/include/ffi/ffi.h
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libffi.so /usr/lib/libffi.so
+          ls /usr/include/ffi/ffi.h && echo "✅ Готово"
 
-          # Проверяем
-          ls /usr/include/ffi/ffi.h && echo "✅ ffi.h теперь доступен"
 
       - name: Build APK
         run: |
@@ -99,8 +97,8 @@ jobs:
           buildozer -v android debug
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
-
           PYTHONUNBUFFERED: 1
+
 
 
       - name: Upload APK
