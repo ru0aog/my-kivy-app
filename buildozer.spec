@@ -11,7 +11,8 @@ orientation = portrait
 fullscreen = 0
 
 # Только одна архитектура — экономим место
-android.arch = arm64-v8a
+android.archs = arm64-v8a
+
 
 # API
 android.api = 34
@@ -33,4 +34,5 @@ p4a.args = --ignore-setup-py
 [buildozer]
 log_level = 2
 platform = android
+
 
