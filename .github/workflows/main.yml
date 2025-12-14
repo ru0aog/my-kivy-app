@@ -121,13 +121,59 @@ jobs:
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libffi.so /usr/lib/libffi.so
           ls /usr/include/ffi/ffi.h && echo "✅ Готово"
 
-
       - name: Build APK
         run: |
-          # Удаляем .buildozer, если остался от прошлых запусков
+          echo "🔄 Запускаем сборку APK..."
+
+          # Удаляем старый .buildozer
           rm -rf .buildozer
-          # Запускаем сборку — она сама скачает p4a
+
+          # Шаг 1: Запускаем update — чтобы скачать зависимости
+          echo "📥 Скачиваем зависимости через buildozer android update..."
+          buildozer android update
+
+          # Шаг 2: Находим путь к сборке libffi
+          LIBFFI_BUILD_DIR="$HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds/sdl2-python3/ffi"
+
+          if [ ! -d "$LIBFFI_BUILD_DIR" ]; then
+            echo "❌ Не найдена папка libffi: $LIBFFI_BUILD_DIR"
+            echo "🔍 Проверим, что есть в build/bootstrap_builds..."
+            find $HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds -type d -name "ffi" || true
+            exit 1
+          fi
+
+          echo "🔧 Патчим libffi: копируем libtool.m4 и lt~obsolete.m4..."
+
+          # Устанавливаем libtool
+          sudo apt-get install -y libtool libtool-bin
+
+          # Находим файлы
+          LIBTOOL_M4=$(find /usr/share/aclocal -name libtool.m4 | head -n 1)
+          LT_OBSOLETE_M4=$(find /usr/share/aclocal -name lt~obsolete.m4 | head -n 1)
+
+          if [ ! -f "$LIBTOOL_M4" ]; then
+            echo "❌ Не найден libtool.m4"
+            exit 1
+          fi
+
+          if [ ! -f "$LT_OBSOLETE_M4" ]; then
+            echo "⚠️ Не найден lt~obsolete.m4 — создаём пустой"
+            LT_OBSOLETE_M4=/tmp/lt~obsolete.m4
+            touch "$LT_OBSOLETE_M4"
+          fi
+
+          # Создаём m4/ и копируем
+          mkdir -p "$LIBFFI_BUILD_DIR/m4"
+          cp "$LIBTOOL_M4" "$LIBFFI_BUILD_DIR/m4/"
+          cp "$LT_OBSOLETE_M4" "$LIBFFI_BUILD_DIR/m4/"
+
+          echo "✅ Макросы скопированы в $LIBFFI_BUILD_DIR/m4/"
+          ls -la "$LIBFFI_BUILD_DIR/m4/"
+
+          # Шаг 3: Запускаем сборку
+          echo "🚀 Запускаем сборку APK..."
           buildozer -v android debug
+
 
 
 
