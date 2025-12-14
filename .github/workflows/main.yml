@@ -16,6 +16,7 @@ jobs:
           df -h  # Проверка свободного места
 
 
+
       - name: Install minimal dependencies
         run: |
           sudo apt-get update
@@ -27,7 +28,6 @@ jobs:
 
           pip3 install --upgrade pip
           pip3 install Cython==0.29.33 buildozer
-
 
 
 
@@ -67,12 +67,18 @@ jobs:
           sudo rm -rf /home/runner/actions-runner/_work/_temp/*
           df -h
 
+      - name: Ensure libffi headers are available
+        run: |
+          ls /usr/include/ffi.h || echo "⚠️ ffi.h not found — installing again"
+          sudo apt-get install -y libffi-dev --reinstall
+          ls /usr/include/ffi.h && echo "✅ ffi.h found"
+
       - name: Build APK
         run: |
           buildozer -v android debug
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
-          P4A_libffi_DIR: /usr/lib/aarch64-linux-gnu
+
           PYTHONUNBUFFERED: 1
 
 
