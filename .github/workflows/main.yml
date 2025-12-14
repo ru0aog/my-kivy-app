@@ -30,6 +30,12 @@ jobs:
               libncurses5-dev libncursesw5-dev \
               autoconf libtool pkg-config zlib1g-dev libffi-dev libssl-dev \
               cmake unzip wget
+          
+          sudo apt-get install -y libtool automake autoconf
+          sudo apt-get install -y libffi-dev
+          sudo apt-get install -y libffi-dev
+
+
 
           pip3 install --upgrade pip
           pip3 install Cython==0.29.33 buildozer
@@ -72,6 +78,7 @@ jobs:
           sudo rm -rf /home/runner/actions-runner/_work/_temp/*
           df -h
 
+
       - name: Fix libffi header path
         run: |
           echo "🔧 Создаём симлинк для ffi.h..."
@@ -88,6 +95,7 @@ jobs:
 
       - name: Build APK
         run: |
+          buildozer android clean
           buildozer -v android debug
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
