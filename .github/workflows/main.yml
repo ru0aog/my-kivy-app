@@ -93,11 +93,11 @@ jobs:
 
       - name: Build APK
         run: |
-          buildozer android clean
+          # Удаляем .buildozer, если остался от прошлых запусков
+          rm -rf .buildozer
+          # Запускаем сборку — она сама скачает p4a
           buildozer -v android debug
-        env:
-          ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
-          PYTHONUNBUFFERED: 1
+
 
 
 
