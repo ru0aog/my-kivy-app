@@ -67,11 +67,19 @@ jobs:
           sudo rm -rf /home/runner/actions-runner/_work/_temp/*
           df -h
 
-      - name: Ensure libffi headers are available
+      - name: Fix libffi header path
         run: |
-          ls /usr/include/ffi.h || echo "⚠️ ffi.h not found — installing again"
+          echo "🔧 Создаём симлинк для ffi.h..."
+          # Убедимся, что пакет установлен
           sudo apt-get install -y libffi-dev --reinstall
-          ls /usr/include/ffi.h && echo "✅ ffi.h found"
+
+          # Создаём симлинк в стандартный include
+          sudo mkdir -p /usr/include/ffi
+          sudo ln -sf /usr/include/x86_64-linux-gnu/ffi.h /usr/include/ffi/ffi.h
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libffi.so /usr/lib/libffi.so
+
+          # Проверяем
+          ls /usr/include/ffi/ffi.h && echo "✅ ffi.h теперь доступен"
 
       - name: Build APK
         run: |
