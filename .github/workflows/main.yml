@@ -15,9 +15,9 @@ jobs:
           sudo rm -rf ~/.m2
           df -h  # Проверка свободного места
 
+
       - name: Install minimal dependencies
         run: |
-          echo "📦 Установка минимальных зависимостей..."
           sudo apt-get update
           sudo apt-get install -y \
               python3 python3-pip build-essential git openjdk-17-jdk \
@@ -27,6 +27,7 @@ jobs:
 
           pip3 install --upgrade pip
           pip3 install Cython==0.29.33 buildozer
+
 
 
 
@@ -60,12 +61,18 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
 
+      - name: Clean up before build
+        run: |
+          echo "🧹 Освобождаем место..."
+          sudo rm -rf /home/runner/actions-runner/_work/_temp/*
+          df -h
+
       - name: Build APK
         run: |
           buildozer -v android debug
         env:
           ANDROID_HOME: $HOME/.buildozer/android/platform/android-sdk
-          P4A_libffi_DIR: /usr
+          P4A_libffi_DIR: /usr/lib/aarch64-linux-gnu
           PYTHONUNBUFFERED: 1
 
 
