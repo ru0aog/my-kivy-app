@@ -123,70 +123,76 @@ jobs:
 
 
 
-      - name: Build APK
-        run: |
-          echo "🔄 Запускаем сборку APK..."
+- name: Build APK
+  run: |
+    echo "🔄 Запускаем сборку APK..."
 
-          # Удаляем старый .buildozer
-          rm -rf .buildozer
 
-          # Шаг 1: Запускаем update — чтобы скачать зависимости
-          echo "📥 Скачиваем зависимости через buildozer android update..."
-          buildozer android update
+    # Удаляем старый .buildozer
+    rm -rf .buildozer
 
-          # Шаг 2: Находим путь к сборке libffi
-          LIBFFI_BUILD_DIR="$HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds/sdl2-python3/ffi"
+    buildozer android update
 
-          if [ ! -d "$LIBFFI_BUILD_DIR" ]; then
-            echo "❌ Не найдена папка libffi: $LIBFFI_BUILD_DIR"
-            find $HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds -type d -name "ffi" || true
-            exit 1
-          fi
+    LIBFFI_BUILD_DIR="$HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds/sdl2-python3/ffi"
 
-          echo "🔧 Патчим libffi: добавляем макрос LT_SYS_SYMBOL_USCORE вручную..."
+    if [ ! -d "$LIBFFI_BUILD_DIR" ]; then
+      echo "❌ Не найдена папка libffi: $LIBFFI_BUILD_DIR"
+      find $HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds -type d -name "ffi" || true
+      exit 1
+    fi
 
-          # Устанавливаем libtool
-          sudo apt-get install -y libtool libtool-bin
+    echo "🔧 Патчим libffi: исправленная версия"
 
-          # Копируем стандартные макросы (на всякий случай)
-          mkdir -p "$LIBFFI_BUILD_DIR/m4"
-          find /usr/share/aclocal -name "*.m4" -exec cp {} "$LIBFFI_BUILD_DIR/m4/" \; || true
+    sudo apt-get install -y libtool libtool-bin autoconf automake
 
-          # Проверим, есть ли уже m4/libtool.m4
-          if [ ! -f "$LIBFFI_BUILD_DIR/m4/libtool.m4" ]; then
-            echo "⚠️ libtool.m4 не найден — скачаем вручную"
-            wget -q https://git.savannah.gnu.org/cgit/libtool.git/plain/m4/libtool.m4 -O "$LIBFFI_BUILD_DIR/m4/libtool.m4"
-          fi
+    mkdir -p "$LIBFFI_BUILD_DIR/m4"
 
-          # === КЛЮЧЕВОЙ ШАГ: Внедряем макрос вручную ===
-          CONFIGURE_AC="$LIBFFI_BUILD_DIR/configure.ac"
+    # Копируем все m4-файлы из системы
+    cp /usr/share/aclocal/*.m4 "$LIBFFI_BUILD_DIR/m4/" 2>/dev/null || true
 
-          # Проверим, есть ли уже LT_SYS_SYMBOL_USCORE
-          if ! grep -q "LT_SYS_SYMBOL_USCORE" "$CONFIGURE_AC"; then
-            echo "🔧 Внедряем макрос LT_SYS_SYMBOL_USCORE в configure.ac..."
 
-            # Вставляем макрос в начало, после первой строки
-            sed -i '2i AC_DEFUN([LT_SYS_SYMBOL_USCORE],[AC_REQUIRE([AC_CANONICAL_SYSTEM])dnlAS_VAR_PUSHDEF([lt_cv_sys_symbol_uscore], [lt_cv_sys_symbol_underscore])dnlAC_CACHE_CHECK([for _ in symbol names], lt_cv_sys_symbol_uscore,  [AC_LINK_IFELSE([AC_LANG_PROGRAM([#ifdef __cplusplusextern "C" void sym_underscore ();#endif
-            void sym_underscore () {}], [[return !sym_underscore ();]])],    [AS_CASE([$ac_cv_host], [*[[-_]]*], [lt_cv_sys_symbol_uscore=yes], [lt_cv_sys_symbol_uscore=no])],[lt_cv_sys_symbol_uscore=no])])dnlAC_SUBST([lt_sys_symbol_underscore], [$]$[1])dnlAS_VAR_POPDEF([lt_cv_sys_symbol_uscore])])dnl' "$CONFIGURE_AC" fi
+    # Скачиваем libtool.m4, если нет
+    if [ ! -f "$LIBFFI_BUILD_DIR/m4/libtool.m4" ]; then
+      wget -q https://git.savannah.gnu.org/cgit/libtool.git/plain/m4/libtool.m4 -O "$LIBFFI_BUILD_DIR/m4/libtool.m4"
+    fi
 
-          echo "✅ Макрос LT_SYS_SYMBOL_USCORE добавлен в configure.ac"
+    CONFIGURE_AC="$LIBFFI_BUILD_DIR/configure.ac"
 
-          # Также добавим в aclocal.m4, чтобы aclocal его видел
-          ACLOCAL_M4="$LIBFFI_BUILD_DIR/aclocal.m4"
-          if [ -f "$LIBFFI_BUILD_DIR/m4/libtool.m4" ]; then
-            cat "$LIBFFI_BUILD_DIR/m4/libtool.m4" >> "$ACLOCAL_M4" || true
-          fi
 
-          # Убедимся, что configure.ac знает о папке m4
-          if ! grep -q "AC_CONFIG_MACRO_DIRS" "$CONFIGURE_AC"; then
-            sed -i '2iAC_CONFIG_MACRO_DIRS([m4])' "$CONFIGURE_AC"
-          fi
+    # 1. Добавляем AC_CONFIG_MACRO_DIRS в начало файла (после AC_INIT)
+    if ! grep -q "AC_CONFIG_MACRO_DIRS" "$CONFIGURE_AC"; then
+      sed -i '5iAC_CONFIG_MACRO_DIRS([m4])' "$CONFIGURE_AC"
+    fi
 
-          echo "✅ Папка m4 добавлена в AC_CONFIG_MACRO_DIRS"
+    # 2. Вставляем макрос LT_SYS_SYMBOL_USCORE точно
+    MACRO_DEF='AC_DEFUN([LT_SYS_SYMBOL_USCORE], [
+      AC_REQUIRE([AC_CANONICAL_SYSTEM])
+      AS_VAR_PUSHDEF([lt_cv_sys_symbol_uscore], [lt_cv_sys_symbol_underscore])
+      AC_CACHE_CHECK([for _ in symbol names], lt_cv_sys_symbol_uscore,
+        [AC_LINK_IFELSE([AC_LANG_PROGRAM([[#ifdef __cplusplus
+          extern "C" void sym_underscore ();
+          #endif
+          void sym_underscore () {}]], [[return !sym_underscore ();]])],
+          [AS_CASE([$ac_cv_host], [*[[-_]]*], [lt_cv_sys_symbol_uscore=yes], [lt_cv_sys_symbol_uscore=no])],
+          [lt_cv_sys_symbol_uscore=no])])
+      AC_SUBST([lt_sys_symbol_underscore], [$]1)
+      AS_VAR_POPDEF([lt_cv_sys_symbol_uscore])
+    ])'
 
-          # Шаг 3: Запускаем сборку
-          echo "🚀 Запускаем сборку APK..."
-          buildozer -v android debug
+    if ! grep -q "LT_SYS_SYMBOL_USCORE" "$CONFIGURE_AC"; then
+      echo "$MACRO_DEF" >> "$CONFIGURE_AC"
+      echo "✅ Макрос LT_SYS_SYMBOL_USCORE добавлен в конец configure.ac"
+    fi
+
+    # 3. Запускаем aclocal + autoconf вручную
+    cd "$LIBFFI_BUILD_DIR"
+    aclocal -I m4 || echo "⚠️ aclocal failed, но продолжаем"
+    autoconf || echo "⚠️ autoconf failed, но продолжаем"
+
+
+    echo "🚀 Запускаем сборку APK..."
+    buildozer -v android debug
+
 
 
 
