@@ -15,8 +15,6 @@ jobs:
           sudo rm -rf ~/.m2
           df -h  # Проверка свободного места
 
-
-
       - name: Install minimal dependencies
         run: |
           sudo apt-get update
@@ -29,13 +27,8 @@ jobs:
               pkg-config \
               zlib1g-dev libffi-dev libssl-dev \
               cmake unzip wget
-          
           pip3 install --upgrade pip
           pip3 install Cython==0.29.33 buildozer
-
-
-
-
 
       - name: Prepare Android SDK
         run: |
@@ -44,7 +37,6 @@ jobs:
           export ANDROID_CMDLINE_TOOLS=$ANDROID_HOME/cmdline-tools/latest
           export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
-
           mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
           mkdir -p $ANDROID_HOME/licenses
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
@@ -62,32 +54,38 @@ jobs:
           # Создаём симлинк tools → latest (для совместимости)
           [ -L "$ANDROID_HOME/tools" ] || ln -sf $ANDROID_HOME/cmdline-tools/latest $ANDROID_HOME/tools
 
+
           # Устанавливаем только нужное
           yes | $ANDROID_HOME/tools/bin/sdkmanager --sdk_root=$ANDROID_HOME --install "build-tools;34.0.0" "platforms;android-34"
         env:
           JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
+
 
       - name: Clean up before build
         run: |
           echo "🧹 Освобождаем место..."
           sudo rm -rf /home/runner/actions-runner/_work/_temp/*
           df -h
-          
+
       - name: Patch libffi to fix LT_SYS_SYMBOL_USCORE
         run: |
           echo "🔧 Патчим libffi: копируем libtool.m4 вручную..."
 
+
           # Устанавливаем libtool и ищем нужные .m4 файлы
           sudo apt-get install -y libtool libtool-bin
+
 
           # Находим файлы libtool
           LIBTOOL_M4=$(find /usr/share/aclocal -name libtool.m4 | head -n 1)
           LT_OBSOLETE_M4=$(find /usr/share/aclocal -name lt~obsolete.m4 | head -n 1)
 
+
           if [ ! -f "$LIBTOOL_M4" ]; then
             echo "❌ Не найден libtool.m4"
             exit 1
           fi
+
 
           if [ ! -f "$LT_OBSOLETE_M4" ]; then
             echo "⚠️ Не найден lt~obsolete.m4 — попробуем создать пустой"
@@ -98,20 +96,18 @@ jobs:
           # Указываем путь, куда p4a скачивает libffi
           LIBFFI_BUILD_DIR="$HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds/sdl2-python3/ffi"
 
+
           # Создаём папку m4, если её нет
           mkdir -p "$LIBFFI_BUILD_DIR/m4"
+
 
           # Копируем макросы
           cp "$LIBTOOL_M4" "$LIBFFI_BUILD_DIR/m4/"
           cp "$LT_OBSOLETE_M4" "$LIBFFI_BUILD_DIR/m4/"
-
           echo "✅ libtool.m4 и lt~obsolete.m4 скопированы в $LIBFFI_BUILD_DIR/m4/"
 
           # Проверим, что файлы есть
           ls -la "$LIBFFI_BUILD_DIR/m4/"
-
-
-
 
       - name: Fix libffi header path
         run: |
@@ -121,15 +117,9 @@ jobs:
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libffi.so /usr/lib/libffi.so
           ls /usr/include/ffi/ffi.h && echo "✅ Готово"
 
-
-
-
-        
-
       - name: Build APK
         run: |
           echo "🔄 Запускаем сборку APK..."
-
 
           rm -rf .buildozer
           buildozer android update
@@ -147,12 +137,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libtool libtool-bin autoconf automake autopoint gettext
 
-
           mkdir -p "$LIBFFI_BUILD_DIR/m4"
 
           # Копируем системные m4-файлы
           cp /usr/share/aclocal/*.m4 "$LIBFFI_BUILD_DIR/m4/" 2>/dev/null || true
-
 
           # Скачиваем libtool.m4, если нет
           if [ ! -f "$LIBFFI_BUILD_DIR/m4/libtool.m4" ]; then
@@ -171,24 +159,44 @@ jobs:
 
           # 3. Запускаем autoupdate с явным путём
           cd "$LIBFFI_BUILD_DIR"
-          autoupdate -f || echo "⚠️ autoupdate failed, продолжаем"
+          autoupdate -f || {
+          echo "⚠️ autoupdate failed, продолжаем"
+          cat configure
+          }
 
           # 4. Устанавливаем ALOCAL_FLAGS и запускаем autoreconf
           export ALOCAL_FLAGS="-I m4"
-          autoreconf --force --install || echo "⚠️ autoreconf failed, продолжаем"
-
+          autoreconf --force --install || {
+            echo "⚠️ autoreconf failed, продолжаем"
+            cat configure
+          }
 
           # 5. Если autoreconf не сработал, запускаем вручную
           if [ ! -f configure ]; then
-            aclocal -I m4 || echo "⚠️ aclocal failed"
-            autoconf || echo "⚠️ autoconf failed"
+            aclocal -I m4 || {
+              echo "⚠️ aclocal failed"
+              cat aclocal.log
+            }
+            autoconf || {
+              echo "⚠️ autoconf failed"
+              cat config.log
+            }
+          fi
+
+          # 6. Проверяем наличие configure и запускаем конфигурацию
+          if [ -f configure ]; then
+            ./configure || {
+              echo "⚠️ configure failed"
+              cat config.log
+              exit 1
+            }
+          else
+            echo "❌ Не удалось сгенерировать configure"
+            exit 1
           fi
 
           echo "🚀 Запускаем сборку APK..."
           buildozer -v android debug
-
-
-
 
 
       - name: Upload APK
