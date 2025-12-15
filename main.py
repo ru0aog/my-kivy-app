@@ -9,7 +9,7 @@ from kivy.metrics import dp
 from kivy.core.window import Window
 from kivy.config import Config
 
-from rtty import play_rtty  # импортируем функцию передачи
+# from rtty import play_rtty  # импортируем функцию передачи
 # import sounddevice as sd
 
 
@@ -40,11 +40,11 @@ class RTTYApp(App):
         layout.add_widget(self.text_input)
 
         start_btn = Button(text='СТАРТ', size_hint_y=None, height=dp(90), font_size=dp(28), bold=True, background_color=(0.15, 0.65, 0.25, 1), color=(1, 1, 1, 1))
-        start_btn.bind(on_press=self.start_rtty)
+       # start_btn.bind(on_press=self.start_rtty)
         layout.add_widget(start_btn)
 
         stop_btn = Button(text='СТОП', size_hint_y=None, height=dp(90), font_size=dp(28), bold=True, background_color=(0.8, 0.2, 0.2, 1), color=(1, 1, 1, 1))
-        stop_btn.bind(on_press=self.stop_rtty)
+      #  stop_btn.bind(on_press=self.stop_rtty)
         layout.add_widget(stop_btn)
 
         self.led = Label(text='[]', font_size=dp(40), color=(0.5, 0.5, 0.5, 1), size_hint_y=None, height=dp(60))
@@ -76,7 +76,7 @@ class RTTYApp(App):
         self.transmitting = True
         self.manual_stop = False
     
-        play_rtty(text, on_complete=self.on_transmission_complete)
+       # play_rtty(text, on_complete=self.on_transmission_complete)
 
 
     def on_transmission_complete(self):
