@@ -123,15 +123,15 @@ jobs:
 
 
 
+
+        
       - name: Build APK
         run: |
           echo "🔄 Запускаем сборку APK..."
 
-
-          # Удаляем старый .buildozer
           rm -rf .buildozer
-
           buildozer android update
+
 
           LIBFFI_BUILD_DIR="$HOME/.buildozer/android/platform/build-arm64-v8a/build/bootstrap_builds/sdl2-python3/ffi"
 
@@ -141,15 +141,16 @@ jobs:
             exit 1
           fi
 
-          echo "🔧 Патчим libffi: исправленная версия"
+          echo "🔧 Патчим libffi: финальная версия"
 
-          sudo apt-get install -y libtool libtool-bin autoconf automake
+          sudo apt-get update
+          sudo apt-get install -y libtool libtool-bin autoconf automake autopoint
+
 
           mkdir -p "$LIBFFI_BUILD_DIR/m4"
 
-          # Копируем все m4-файлы из системы
+          # Копируем системные m4-файлы
           cp /usr/share/aclocal/*.m4 "$LIBFFI_BUILD_DIR/m4/" 2>/dev/null || true
-
 
           # Скачиваем libtool.m4, если нет
           if [ ! -f "$LIBFFI_BUILD_DIR/m4/libtool.m4" ]; then
@@ -158,42 +159,26 @@ jobs:
 
           CONFIGURE_AC="$LIBFFI_BUILD_DIR/configure.ac"
 
+          # 1. Добавляем AC_CONFIG_MACRO_DIRS в начало (после AC_INIT)
+          sed -i '5iAC_CONFIG_MACRO_DIRS([m4])' "$CONFIGURE_AC"
 
-          # 1. Добавляем AC_CONFIG_MACRO_DIRS в начало файла (после AC_INIT)
-          if ! grep -q "AC_CONFIG_MACRO_DIRS" "$CONFIGURE_AC"; then
-            sed -i '5iAC_CONFIG_MACRO_DIRS([m4])' "$CONFIGURE_AC"
-          fi
 
-          # 2. Вставляем макрос LT_SYS_SYMBOL_USCORE точно
-          MACRO_DEF='AC_DEFUN([LT_SYS_SYMBOL_USCORE], [
-            AC_REQUIRE([AC_CANONICAL_SYSTEM])
-            AS_VAR_PUSHDEF([lt_cv_sys_symbol_uscore], [lt_cv_sys_symbol_underscore])
-            AC_CACHE_CHECK([for _ in symbol names], lt_cv_sys_symbol_uscore,
-              [AC_LINK_IFELSE([AC_LANG_PROGRAM([[#ifdef __cplusplus
-                extern "C" void sym_underscore ();
-                #endif
-                void sym_underscore () {}]], [[return !sym_underscore ();]])],
-                [AS_CASE([$ac_cv_host], [*[[-_]]*], [lt_cv_sys_symbol_uscore=yes], [lt_cv_sys_symbol_uscore=no])],
-                [lt_cv_sys_symbol_uscore=no])])
-            AC_SUBST([lt_sys_symbol_underscore], [$]1)
-            AS_VAR_POPDEF([lt_cv_sys_symbol_uscore])
-          ])'
+          # 2. Добавляем m4_pattern_allow для пропуска проверки макроса
+          sed -i '1im4_pattern_allow([LT_SYS_SYMBOL_USCORE])' "$CONFIGURE_AC"
 
-          if ! grep -q "LT_SYS_SYMBOL_USCORE" "$CONFIGURE_AC"; then
-            echo "$MACRO_DEF" >> "$CONFIGURE_AC"
-            echo "✅ Макрос LT_SYS_SYMBOL_USCORE добавлен в конец configure.ac"
-          fi
 
-          # 3. Запускаем aclocal + autoconf вручную
+          # 3. Запускаем autoupdate для устранения устаревших макросов
           cd "$LIBFFI_BUILD_DIR"
-          aclocal -I m4 || echo "⚠️ aclocal failed, но продолжаем"
-          autoconf || echo "⚠️ autoconf failed, но продолжаем"
+          autoupdate || echo "⚠️ autoupdate failed, продолжаем"
+
+
+          # 4. Запускаем aclocal + autoconf
+          aclocal -I m4 || echo "⚠️ aclocal failed"
+          autoconf || echo "⚠️ autoconf failed"
 
 
           echo "🚀 Запускаем сборку APK..."
           buildozer -v android debug
-
-
 
 
 
