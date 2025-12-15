@@ -125,7 +125,7 @@ jobs:
 
 
         
-      - name: Build APK
+
       - name: Build APK
         run: |
           echo "🔄 Запускаем сборку APK..."
