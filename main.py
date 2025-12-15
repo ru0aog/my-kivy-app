@@ -10,7 +10,7 @@ from kivy.core.window import Window
 from kivy.config import Config
 
 from rtty import play_rtty  # импортируем функцию передачи
-import sounddevice as sd
+# import sounddevice as sd
 
 
 Config.set('graphics', 'width', '720')
@@ -94,7 +94,7 @@ class RTTYApp(App):
         if not self.transmitting:
             return  # ✅ Не останавливаем, если не передаём
         self.manual_stop = True
-        sd.stop()
+        # sd.stop()
         print("Передача остановлена")
         self.led.color = (0.5, 0.5, 0.5, 1)
         self.transmitting = False
